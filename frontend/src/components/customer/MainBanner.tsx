@@ -21,7 +21,7 @@ const MainBanner: React.FC = () => {
           </div>
           <div className="md:w-1/2 flex justify-center">
             <div className="w-80 h-80 bg-white/20 rounded-full flex items-center justify-center">
-              <span className="text-4xl">🛍️</span>
+              <span className="text-8xl">🛍️</span>
             </div>
           </div>
         </div>

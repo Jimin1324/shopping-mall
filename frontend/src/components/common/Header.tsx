@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 
 const Header: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -14,7 +15,9 @@ const Header: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between py-4 gap-4">
             <div className="flex-shrink-0">
-              <h1 className="text-2xl md:text-3xl font-bold text-gray-800">ShopMall</h1>
+              <Link to="/">
+                <h1 className="text-2xl md:text-3xl font-bold text-gray-800">ShopMall</h1>
+              </Link>
             </div>
             
             <form className="flex-1 max-w-2xl" onSubmit={handleSearch}>
@@ -36,12 +39,18 @@ const Header: React.FC = () => {
             </form>
             
             <div className="flex items-center gap-2">
-              <button className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors">
+              <Link 
+                to="/login"
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
+              >
                 Sign In
-              </button>
-              <button className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors">
+              </Link>
+              <Link 
+                to="/cart"
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
+              >
                 Cart (0)
-              </button>
+              </Link>
             </div>
           </div>
         </div>
@@ -50,12 +59,12 @@ const Header: React.FC = () => {
       <nav className="bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <ul className="flex flex-wrap items-center gap-6 py-3">
-            <li><a href="#categories" className="text-gray-700 font-medium hover:text-blue-600 transition-colors">Categories</a></li>
-            <li><a href="#new" className="text-gray-700 font-medium hover:text-blue-600 transition-colors">New Arrivals</a></li>
-            <li><a href="#deals" className="text-gray-700 font-medium hover:text-blue-600 transition-colors">Today's Deals</a></li>
-            <li><a href="#brands" className="text-gray-700 font-medium hover:text-blue-600 transition-colors">Brands</a></li>
+            <li><Link to="/products" className="text-gray-700 font-medium hover:text-blue-600 transition-colors">All Products</Link></li>
+            <li><Link to="/products?category=electronics" className="text-gray-700 font-medium hover:text-blue-600 transition-colors">Electronics</Link></li>
+            <li><Link to="/products?category=sports" className="text-gray-700 font-medium hover:text-blue-600 transition-colors">Sports</Link></li>
+            <li><Link to="/products?category=home" className="text-gray-700 font-medium hover:text-blue-600 transition-colors">Home</Link></li>
+            <li><Link to="/products?category=accessories" className="text-gray-700 font-medium hover:text-blue-600 transition-colors">Accessories</Link></li>
             <li><a href="#customer-service" className="text-gray-700 font-medium hover:text-blue-600 transition-colors">Customer Service</a></li>
-            <li><a href="#seller" className="text-gray-700 font-medium hover:text-blue-600 transition-colors">Become a Seller</a></li>
           </ul>
         </div>
       </nav>

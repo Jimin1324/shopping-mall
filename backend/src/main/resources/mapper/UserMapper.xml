@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.shoppingmall.mapper.UserMapper">
+
+    <resultMap id="UserResultMap" type="com.shoppingmall.model.User">
+        <id property="id" column="id"/>
+        <result property="email" column="email"/>
+        <result property="password" column="password"/>
+        <result property="firstName" column="first_name"/>
+        <result property="lastName" column="last_name"/>
+        <result property="phone" column="phone"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+        <result property="isActive" column="is_active"/>
+    </resultMap>
+
+    <!-- Insert -->
+    <insert id="insert" parameterType="com.shoppingmall.model.User" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO users (email, password, first_name, last_name, phone, is_active)
+        VALUES (#{email}, #{password}, #{firstName}, #{lastName}, #{phone}, #{isActive})
+    </insert>
+
+    <!-- Select -->
+    <select id="findById" resultMap="UserResultMap">
+        SELECT id, email, password, first_name, last_name, phone, created_at, updated_at, is_active
+        FROM users
+        WHERE id = #{id}
+    </select>
+
+    <select id="findByEmail" resultMap="UserResultMap">
+        SELECT id, email, password, first_name, last_name, phone, created_at, updated_at, is_active
+        FROM users
+        WHERE email = #{email}
+    </select>
+
+    <select id="findAll" resultMap="UserResultMap">
+        SELECT id, email, password, first_name, last_name, phone, created_at, updated_at, is_active
+        FROM users
+        ORDER BY created_at DESC
+    </select>
+
+    <select id="findAllActive" resultMap="UserResultMap">
+        SELECT id, email, password, first_name, last_name, phone, created_at, updated_at, is_active
+        FROM users
+        WHERE is_active = true
+        ORDER BY created_at DESC
+    </select>
+
+    <!-- Update -->
+    <update id="update" parameterType="com.shoppingmall.model.User">
+        UPDATE users
+        SET first_name = #{firstName},
+            last_name = #{lastName},
+            phone = #{phone},
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = #{id}
+    </update>
+
+    <update id="updatePassword">
+        UPDATE users
+        SET password = #{password},
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = #{id}
+    </update>
+
+    <update id="deactivate">
+        UPDATE users
+        SET is_active = false,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = #{id}
+    </update>
+
+    <update id="activate">
+        UPDATE users
+        SET is_active = true,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = #{id}
+    </update>
+
+    <!-- Delete -->
+    <delete id="deleteById">
+        DELETE FROM users WHERE id = #{id}
+    </delete>
+
+    <!-- Existence checks -->
+    <select id="existsByEmail" resultType="boolean">
+        SELECT COUNT(*) > 0 FROM users WHERE email = #{email}
+    </select>
+
+    <select id="existsByEmailAndIdNot" resultType="boolean">
+        SELECT COUNT(*) > 0 FROM users WHERE email = #{email} AND id != #{id}
+    </select>
+
+</mapper>

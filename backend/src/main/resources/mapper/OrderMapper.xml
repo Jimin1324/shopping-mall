@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.shoppingmall.mapper.OrderMapper">
+
+    <resultMap id="OrderResultMap" type="com.shoppingmall.model.Order">
+        <id property="id" column="id"/>
+        <result property="userId" column="user_id"/>
+        <result property="orderNumber" column="order_number"/>
+        <result property="status" column="status" typeHandler="org.apache.ibatis.type.EnumTypeHandler"/>
+        <result property="subtotal" column="subtotal"/>
+        <result property="tax" column="tax"/>
+        <result property="shippingFee" column="shipping_fee"/>
+        <result property="total" column="total"/>
+        <result property="shippingAddress" column="shipping_address"/>
+        <result property="paymentMethod" column="payment_method"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <resultMap id="OrderItemResultMap" type="com.shoppingmall.model.OrderItem">
+        <id property="id" column="id"/>
+        <result property="orderId" column="order_id"/>
+        <result property="productId" column="product_id"/>
+        <result property="quantity" column="quantity"/>
+        <result property="size" column="size"/>
+        <result property="price" column="price"/>
+    </resultMap>
+
+    <resultMap id="OrderItemWithProductResultMap" type="com.shoppingmall.model.OrderItem">
+        <id property="id" column="order_item_id"/>
+        <result property="orderId" column="order_id"/>
+        <result property="productId" column="product_id"/>
+        <result property="quantity" column="quantity"/>
+        <result property="size" column="size"/>
+        <result property="price" column="price"/>
+        <association property="product" javaType="com.shoppingmall.model.Product">
+            <id property="id" column="product_id"/>
+            <result property="name" column="product_name"/>
+            <result property="description" column="product_description"/>
+            <result property="category" column="product_category"/>
+            <result property="imageUrl" column="product_image_url"/>
+            <result property="rating" column="product_rating"/>
+            <result property="reviewCount" column="product_review_count"/>
+            <result property="isActive" column="product_is_active"/>
+        </association>
+    </resultMap>
+
+    <!-- Order operations -->
+    <insert id="insertOrder" parameterType="com.shoppingmall.model.Order" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO orders (user_id, order_number, status, subtotal, tax, shipping_fee, total, shipping_address, payment_method)
+        VALUES (#{userId}, #{orderNumber}, #{status}, #{subtotal}, #{tax}, #{shippingFee}, #{total}, #{shippingAddress}, #{paymentMethod})
+    </insert>
+
+    <select id="findById" resultMap="OrderResultMap">
+        SELECT id, user_id, order_number, status, subtotal, tax, shipping_fee, total, shipping_address, payment_method, created_at, updated_at
+        FROM orders
+        WHERE id = #{id}
+    </select>
+
+    <select id="findByOrderNumber" resultMap="OrderResultMap">
+        SELECT id, user_id, order_number, status, subtotal, tax, shipping_fee, total, shipping_address, payment_method, created_at, updated_at
+        FROM orders
+        WHERE order_number = #{orderNumber}
+    </select>
+
+    <select id="findByUserId" resultMap="OrderResultMap">
+        SELECT id, user_id, order_number, status, subtotal, tax, shipping_fee, total, shipping_address, payment_method, created_at, updated_at
+        FROM orders
+        WHERE user_id = #{userId}
+        ORDER BY created_at DESC
+    </select>
+
+    <select id="findByUserIdWithItems" resultMap="OrderResultMap">
+        SELECT DISTINCT o.id, o.user_id, o.order_number, o.status, o.subtotal, o.tax, o.shipping_fee, o.total, o.shipping_address, o.payment_method, o.created_at, o.updated_at
+        FROM orders o
+        LEFT JOIN order_items oi ON o.id = oi.order_id
+        WHERE o.user_id = #{userId}
+        ORDER BY o.created_at DESC
+    </select>
+
+    <select id="findAll" resultMap="OrderResultMap">
+        SELECT id, user_id, order_number, status, subtotal, tax, shipping_fee, total, shipping_address, payment_method, created_at, updated_at
+        FROM orders
+        ORDER BY created_at DESC
+        <if test="limit != null and offset != null">
+            LIMIT #{limit} OFFSET #{offset}
+        </if>
+    </select>
+
+    <update id="updateOrderStatus">
+        UPDATE orders
+        SET status = #{status},
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = #{id}
+    </update>
+
+    <update id="updateOrder" parameterType="com.shoppingmall.model.Order">
+        UPDATE orders
+        SET status = #{status},
+            shipping_address = #{shippingAddress},
+            payment_method = #{paymentMethod},
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = #{id}
+    </update>
+
+    <!-- Order item operations -->
+    <insert id="insertOrderItem" parameterType="com.shoppingmall.model.OrderItem" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO order_items (order_id, product_id, quantity, size, price)
+        VALUES (#{orderId}, #{productId}, #{quantity}, #{size}, #{price})
+    </insert>
+
+    <select id="findOrderItemsByOrderId" resultMap="OrderItemResultMap">
+        SELECT id, order_id, product_id, quantity, size, price
+        FROM order_items
+        WHERE order_id = #{orderId}
+    </select>
+
+    <select id="findOrderItemsWithProductsByOrderId" resultMap="OrderItemWithProductResultMap">
+        SELECT 
+            oi.id as order_item_id,
+            oi.order_id,
+            oi.product_id,
+            oi.quantity,
+            oi.size,
+            oi.price,
+            p.name as product_name,
+            p.description as product_description,
+            p.category as product_category,
+            p.image_url as product_image_url,
+            p.rating as product_rating,
+            p.review_count as product_review_count,
+            p.is_active as product_is_active
+        FROM order_items oi
+        INNER JOIN products p ON oi.product_id = p.id
+        WHERE oi.order_id = #{orderId}
+    </select>
+
+    <!-- Utility methods -->
+    <select id="orderNumberExists" resultType="boolean">
+        SELECT COUNT(*) > 0 FROM orders WHERE order_number = #{orderNumber}
+    </select>
+
+    <select id="countOrdersByUserId" resultType="int">
+        SELECT COUNT(*) FROM orders WHERE user_id = #{userId}
+    </select>
+
+    <select id="countAllOrders" resultType="int">
+        SELECT COUNT(*) FROM orders
+    </select>
+
+</mapper>
