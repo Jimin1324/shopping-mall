@@ -1,0 +1,114 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: shopping-mall-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME}
+      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD}
+      # Remove MYSQL_USER and MYSQL_PASSWORD to avoid conflicts with manual user creation
+    ports:
+      - "${MYSQL_PORT}:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./init-db.sh:/docker-entrypoint-initdb.d/01-init-db.sh
+      - ./backend/src/main/resources/schema.sql:/docker-entrypoint-initdb.d/02-schema.sql
+      - ./backend/src/main/resources/data.sql:/docker-entrypoint-initdb.d/03-data.sql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
+      timeout: 20s
+      retries: 10
+    networks:
+      - shopping-mall-network
+
+  # Optional backend service (you can run this with docker-compose up backend)
+  backend:
+    build: 
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: shopping-mall-backend
+    restart: unless-stopped
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/shopping_mall?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&autoReconnect=true
+      SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME}
+      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRATION: ${JWT_EXPIRATION}
+      ELASTICSEARCH_URIS: http://elasticsearch:9200
+    ports:
+      - "8080:8080"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+    networks:
+      - shopping-mall-network
+    profiles:
+      - backend  # Only starts when explicitly requested
+
+  # Frontend service
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: shopping-mall-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    networks:
+      - shopping-mall-network
+    profiles:
+      - frontend  # Only starts when explicitly requested
+
+  # Elasticsearch service
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.1
+    container_name: shopping-mall-elasticsearch
+    restart: unless-stopped
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ports:
+      - "9200:9200"
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    networks:
+      - shopping-mall-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9200 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # Kibana service (optional, for Elasticsearch monitoring)
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.11.1
+    container_name: shopping-mall-kibana
+    restart: unless-stopped
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+    ports:
+      - "5601:5601"
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    networks:
+      - shopping-mall-network
+    profiles:
+      - monitoring  # Only starts when explicitly requested
+
+volumes:
+  mysql_data:
+    driver: local
+  elasticsearch_data:
+    driver: local
+
+networks:
+  shopping-mall-network:
+    driver: bridge

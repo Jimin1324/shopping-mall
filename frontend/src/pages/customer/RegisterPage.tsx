@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { authAPI } from '../../services/api';
 
 interface RegisterForm {
   firstName: string;
@@ -21,6 +22,7 @@ const RegisterPage: React.FC = () => {
     agreeToTerms: false
   });
   const [errors, setErrors] = useState<Partial<Record<keyof RegisterForm, string> & { general?: string }>>({});
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target;
@@ -62,13 +64,44 @@ const RegisterPage: React.FC = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (validateForm()) {
-      console.log('Registration attempt:', formData);
-      // TODO: Implement actual registration logic
-      navigate('/login');
+      setIsLoading(true);
+      setErrors({});
+      
+      try {
+        // Prepare registration data (exclude confirmPassword and agreeToTerms)
+        const registrationData = {
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          email: formData.email,
+          password: formData.password
+        };
+        
+        console.log('Registration attempt:', registrationData);
+        
+        // Call the registration API
+        const response = await authAPI.register(registrationData);
+        
+        console.log('Registration successful:', response);
+        
+        // Navigate to login page on successful registration
+        navigate('/login', { 
+          state: { 
+            message: 'Registration successful! Please log in with your credentials.' 
+          } 
+        });
+        
+      } catch (error: any) {
+        console.error('Registration failed:', error);
+        setErrors({
+          general: error.message || 'Registration failed. Please try again.'
+        });
+      } finally {
+        setIsLoading(false);
+      }
     }
   };
 
@@ -228,9 +261,10 @@ const RegisterPage: React.FC = () => {
           <div>
             <button
               type="submit"
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              disabled={isLoading}
+              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:bg-indigo-400 disabled:cursor-not-allowed"
             >
-              Create Account
+              {isLoading ? 'Creating Account...' : 'Create Account'}
             </button>
           </div>
 

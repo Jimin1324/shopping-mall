@@ -3,12 +3,32 @@ import Header from '../../components/common/Header';
 import MainBanner from '../../components/customer/MainBanner';
 import TodayRecommendation from '../../components/customer/TodayRecommendation';
 import EventSection from '../../components/customer/EventSection';
+import { useAuth } from '../../contexts/AuthContext';
 
 const LandingPage: React.FC = () => {
+  const { user, isAuthenticated } = useAuth();
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
       <main>
+        {isAuthenticated && user && (
+          <div className="bg-white shadow">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-xl font-semibold text-gray-900">
+                    Welcome back, {user.firstName} {user.lastName}!
+                  </h2>
+                  <p className="text-sm text-gray-600">Email: {user.email}</p>
+                </div>
+                <div className="text-sm text-gray-500">
+                  Member since: {new Date(user.createdAt).toLocaleDateString()}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
         <MainBanner />
         <TodayRecommendation />
         <EventSection />

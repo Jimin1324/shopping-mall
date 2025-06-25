@@ -93,4 +93,12 @@
         SELECT COUNT(*) > 0 FROM users WHERE email = #{email} AND id != #{id}
     </select>
 
+    <!-- Password reset -->
+    <update id="updatePasswordResetToken">
+        UPDATE users
+        SET password_reset_token = #{token},
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = #{id}
+    </update>
+
 </mapper>

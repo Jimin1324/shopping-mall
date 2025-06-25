@@ -201,6 +201,18 @@ public class OrderService {
     }
 
     /**
+     * Cancel order by order number
+     */
+    public boolean cancelOrderByOrderNumber(String orderNumber, Long userId) {
+        Optional<Order> orderOpt = orderMapper.findByOrderNumber(orderNumber);
+        if (!orderOpt.isPresent()) {
+            return false;
+        }
+        
+        return cancelOrder(orderOpt.get().getId(), userId);
+    }
+
+    /**
      * Get order count for user
      */
     @Transactional(readOnly = true)

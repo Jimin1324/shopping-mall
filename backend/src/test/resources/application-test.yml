@@ -1,0 +1,29 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: 
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:schema.sql
+      data-locations: classpath:data.sql
+  h2:
+    console:
+      enabled: true
+
+mybatis:
+  mapper-locations: classpath:mapper/*.xml
+  type-aliases-package: com.shoppingmall.model
+  configuration:
+    map-underscore-to-camel-case: true
+
+jwt:
+  secret: mySecretKey123456789012345678901234567890
+  expiration: 86400000
+  refresh-expiration: 604800000
+
+logging:
+  level:
+    com.shoppingmall: DEBUG

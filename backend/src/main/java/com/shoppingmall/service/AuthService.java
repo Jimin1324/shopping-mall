@@ -117,6 +117,48 @@ public class AuthService {
         return tokenProvider.getUserIdFromToken(token);
     }
 
+    /**
+     * Initiate password reset process
+     */
+    public void initiatePasswordReset(String email) {
+        Optional<User> userOpt = userService.findByEmail(email);
+        
+        if (!userOpt.isPresent()) {
+            // Don't reveal if email exists or not for security
+            return;
+        }
+        
+        User user = userOpt.get();
+        
+        // Generate password reset token
+        String resetToken = tokenProvider.generatePasswordResetToken(user.getId());
+        
+        // Save reset token to database
+        userService.savePasswordResetToken(user.getId(), resetToken);
+        
+        // TODO: Send email with reset token
+        // For now, just log it
+        System.out.println("Password reset token for user " + email + ": " + resetToken);
+    }
+
+    /**
+     * Reset user password
+     */
+    public void resetPassword(String token, String newPassword) {
+        // Validate token and get user ID
+        Long userId = tokenProvider.validatePasswordResetToken(token);
+        
+        if (userId == null) {
+            throw new RuntimeException("Invalid or expired reset token");
+        }
+        
+        // Update password
+        userService.updatePassword(userId, newPassword);
+        
+        // Invalidate reset token
+        userService.invalidatePasswordResetToken(userId);
+    }
+
     // Inner class for authentication response
     public static class AuthResponse {
         private final String token;

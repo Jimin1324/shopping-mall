@@ -69,7 +69,8 @@ export const productsAPI = {
     category?: string;
     minPrice?: number;
     maxPrice?: number;
-    sortBy?: string;
+    sort?: string;
+    order?: string;
     page?: number;
     limit?: number;
   }) => {
@@ -81,7 +82,7 @@ export const productsAPI = {
         }
       });
     }
-    return apiRequest<{ products: any[]; total: number }>(
+    return apiRequest<any>(
       `/products${queryParams.toString() ? `?${queryParams.toString()}` : ''}`
     );
   },
@@ -91,6 +92,78 @@ export const productsAPI = {
 
   search: (query: string) =>
     apiRequest<{ products: any[] }>(`/products/search?q=${encodeURIComponent(query)}`),
+
+  searchElasticsearch: async (query: string) => {
+    try {
+      // Direct call to Elasticsearch with proper query structure
+      const elasticsearchQuery = {
+        query: {
+          multi_match: {
+            query: query,
+            fields: ["name^2", "description"],
+            type: "best_fields",
+            fuzziness: "AUTO"
+          }
+        },
+        sort: [
+          "_score"
+        ],
+        size: 50
+      };
+
+      const response = await fetch('http://localhost:9200/products/_search', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(elasticsearchQuery),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Elasticsearch search failed: ${response.status}`);
+      }
+
+      const elasticResult = await response.json();
+      
+      // Convert Elasticsearch response to our expected format
+      const products = elasticResult.hits.hits.map((hit: any) => ({
+        ...hit._source,
+        _score: hit._score
+      }));
+
+      return {
+        products,
+        total: elasticResult.hits.total.value,
+        elasticsearch: true
+      };
+    } catch (error) {
+      console.error('Elasticsearch search failed, falling back to regular search:', error);
+      // Fallback to regular search
+      return apiRequest<{ products: any[] }>(`/products/search?q=${encodeURIComponent(query)}`);
+    }
+  },
+
+  searchAdvanced: (params: {
+    query: string;
+    filters?: {
+      category?: string[];
+      brand?: string[];
+      minPrice?: number;
+      maxPrice?: number;
+      minRating?: number;
+      inStock?: boolean;
+    };
+    from?: number;
+    size?: number;
+    sortBy?: 'RELEVANCE' | 'PRICE_ASC' | 'PRICE_DESC' | 'RATING_DESC' | 'NEWEST';
+  }) =>
+    apiRequest<{ products: any[]; total: number; facets?: any }>('/products/search/advanced', {
+      method: 'POST',
+      body: JSON.stringify(params),
+    }),
+
+  getSuggestions: (prefix: string) =>
+    apiRequest<{ suggestions: string[] }>(`/products/search/suggestions?prefix=${encodeURIComponent(prefix)}`),
 
   getCategories: () =>
     apiRequest<{ categories: string[] }>('/products/categories'),

@@ -6,14 +6,14 @@ spring:
     name: shopping-mall-backend
   
   datasource:
-    url: jdbc:mysql://localhost:3306/shopping_mall?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true
-    username: root
-    password: password
+    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:3306/shopping_mall?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&autoReconnect=true}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
   
   sql:
     init:
-      mode: always
+      mode: never
       schema-locations: classpath:schema.sql
       data-locations: classpath:data.sql
 
@@ -26,8 +26,8 @@ mybatis:
     default-statement-timeout: 30
 
 jwt:
-  secret: mySecretKey123456789012345678901234567890
-  expiration: 86400000 # 24 hours
+  secret: ${JWT_SECRET:mySecretKey123456789012345678901234567890}
+  expiration: ${JWT_EXPIRATION:86400000} # 24 hours
   refresh-expiration: 604800000 # 7 days
 
 logging:
@@ -41,3 +41,7 @@ cors:
   allowed-methods: GET,POST,PUT,DELETE,OPTIONS
   allowed-headers: "*"
   allow-credentials: true
+
+# Elasticsearch configuration
+elasticsearch:
+  uris: ${ELASTICSEARCH_URIS:http://localhost:9200}

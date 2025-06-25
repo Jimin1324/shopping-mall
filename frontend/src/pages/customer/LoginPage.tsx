@@ -1,12 +1,24 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
 
 const LoginPage: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
-  const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
+  const [errors, setErrors] = useState<{ email?: string; password?: string; general?: string }>({});
+  const [isLoading, setIsLoading] = useState(false);
+  const [successMessage, setSuccessMessage] = useState<string>('');
+  
+  useEffect(() => {
+    // Check if there's a success message from registration
+    if (location.state?.message) {
+      setSuccessMessage(location.state.message);
+    }
+  }, [location.state]);
 
   const validateForm = () => {
     const newErrors: { email?: string; password?: string } = {};
@@ -27,14 +39,23 @@ const LoginPage: React.FC = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (validateForm()) {
-      // TODO: Implement actual authentication logic
-      console.log('Login attempt:', { email, password, rememberMe });
-      // For now, just navigate to home page
-      navigate('/');
+      setIsLoading(true);
+      setErrors({});
+      
+      try {
+        await login(email, password);
+        // Check if we have a return location
+        const from = location.state?.from?.pathname || '/';
+        navigate(from);
+      } catch (error) {
+        setErrors({ general: error instanceof Error ? error.message : 'Invalid email or password' });
+      } finally {
+        setIsLoading(false);
+      }
     }
   };
 
@@ -99,6 +120,26 @@ const LoginPage: React.FC = () => {
             </div>
           </div>
 
+          {successMessage && (
+            <div className="rounded-md bg-green-50 p-4">
+              <div className="flex">
+                <div className="ml-3">
+                  <h3 className="text-sm font-medium text-green-800">{successMessage}</h3>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {errors.general && (
+            <div className="rounded-md bg-red-50 p-4">
+              <div className="flex">
+                <div className="ml-3">
+                  <h3 className="text-sm font-medium text-red-800">{errors.general}</h3>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="flex items-center justify-between">
             <div className="flex items-center">
               <input
@@ -124,7 +165,8 @@ const LoginPage: React.FC = () => {
           <div>
             <button
               type="submit"
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              disabled={isLoading}
+              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <span className="absolute left-0 inset-y-0 flex items-center pl-3">
                 <svg
@@ -141,7 +183,7 @@ const LoginPage: React.FC = () => {
                   />
                 </svg>
               </span>
-              Sign in
+              {isLoading ? 'Signing in...' : 'Sign in'}
             </button>
           </div>
 

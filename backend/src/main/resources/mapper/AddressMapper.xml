@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.shoppingmall.mapper.AddressMapper">
+    
+    <resultMap id="AddressResultMap" type="com.shoppingmall.model.Address">
+        <id property="id" column="id"/>
+        <result property="userId" column="user_id"/>
+        <result property="addressLine1" column="address_line1"/>
+        <result property="addressLine2" column="address_line2"/>
+        <result property="city" column="city"/>
+        <result property="state" column="state"/>
+        <result property="zipCode" column="zip_code"/>
+        <result property="country" column="country"/>
+        <result property="isDefault" column="is_default"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+    
+    <select id="findByUserId" resultMap="AddressResultMap">
+        SELECT * FROM user_addresses
+        WHERE user_id = #{userId}
+        ORDER BY is_default DESC, created_at DESC
+    </select>
+    
+    <select id="findById" resultMap="AddressResultMap">
+        SELECT * FROM user_addresses
+        WHERE id = #{id}
+    </select>
+    
+    <select id="findDefaultByUserId" resultMap="AddressResultMap">
+        SELECT * FROM user_addresses
+        WHERE user_id = #{userId} AND is_default = true
+        LIMIT 1
+    </select>
+    
+    <insert id="insert" parameterType="com.shoppingmall.model.Address" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO user_addresses (user_id, address_line1, address_line2, city, state, zip_code, country, is_default)
+        VALUES (#{userId}, #{addressLine1}, #{addressLine2}, #{city}, #{state}, #{zipCode}, #{country}, #{isDefault})
+    </insert>
+    
+    <update id="update" parameterType="com.shoppingmall.model.Address">
+        UPDATE user_addresses
+        SET address_line1 = #{addressLine1},
+            address_line2 = #{addressLine2},
+            city = #{city},
+            state = #{state},
+            zip_code = #{zipCode},
+            country = #{country},
+            is_default = #{isDefault},
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = #{id}
+    </update>
+    
+    <delete id="delete">
+        DELETE FROM user_addresses
+        WHERE id = #{id}
+    </delete>
+    
+    <update id="removeDefaultForUser">
+        UPDATE user_addresses
+        SET is_default = false
+        WHERE user_id = #{userId} AND is_default = true
+    </update>
+    
+</mapper>

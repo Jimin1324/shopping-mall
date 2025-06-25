@@ -185,4 +185,30 @@ public class UserService {
     public boolean emailExistsForOtherUser(String email, Long userId) {
         return userMapper.existsByEmailAndIdNot(email, userId);
     }
+
+    /**
+     * Save password reset token
+     */
+    public void savePasswordResetToken(Long userId, String token) {
+        userMapper.updatePasswordResetToken(userId, token);
+    }
+
+    /**
+     * Update user password without checking current password
+     */
+    public void updatePassword(Long userId, String newPassword) {
+        String encodedPassword = passwordEncoder.encode(newPassword);
+        int result = userMapper.updatePassword(userId, encodedPassword);
+        
+        if (result == 0) {
+            throw new RuntimeException("Failed to update password");
+        }
+    }
+
+    /**
+     * Invalidate password reset token
+     */
+    public void invalidatePasswordResetToken(Long userId) {
+        userMapper.updatePasswordResetToken(userId, null);
+    }
 }

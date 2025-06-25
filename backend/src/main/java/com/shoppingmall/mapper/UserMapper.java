@@ -31,4 +31,7 @@ public interface UserMapper {
     // Check existence
     boolean existsByEmail(@Param("email") String email);
     boolean existsByEmailAndIdNot(@Param("email") String email, @Param("id") Long id);
+    
+    // Password reset
+    int updatePasswordResetToken(@Param("id") Long id, @Param("token") String token);
 }

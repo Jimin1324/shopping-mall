@@ -93,6 +93,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/products/**").permitAll()
                 .requestMatchers("/api/products/search").permitAll()
                 .requestMatchers("/api/products/categories").permitAll()
+                .requestMatchers("/api/admin/elasticsearch/**").permitAll()
                 
                 // Protected endpoints
                 .requestMatchers("/api/cart/**").authenticated()

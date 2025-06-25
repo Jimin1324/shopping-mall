@@ -1,64 +1,148 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import Header from '../../components/common/Header';
+import { cartAPI, productsAPI } from '../../services/api';
+import { useAuth } from '../../contexts/AuthContext';
 
 const ProductDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
   const [quantity, setQuantity] = useState(1);
   const [selectedSize, setSelectedSize] = useState('M');
   const [selectedImage, setSelectedImage] = useState(0);
+  const [product, setProduct] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [addingToCart, setAddingToCart] = useState(false);
 
-  // Dummy product data
-  const product = {
-    id: Number(id),
-    name: "Premium Wireless Headphones",
-    price: 99.99,
-    description: "Experience crystal-clear audio with our premium wireless headphones. Featuring advanced noise cancellation, 30-hour battery life, and supreme comfort for all-day wear.",
-    images: [
-      "https://via.placeholder.com/600",
-      "https://via.placeholder.com/600/FF0000",
-      "https://via.placeholder.com/600/00FF00",
-      "https://via.placeholder.com/600/0000FF"
-    ],
-    rating: 4.5,
-    reviews: 234,
-    sizes: ['S', 'M', 'L', 'XL'],
-    inStock: true,
+  useEffect(() => {
+    if (id) {
+      fetchProduct();
+    }
+  }, [id]);
+
+  const fetchProduct = async () => {
+    try {
+      setLoading(true);
+      const response = await productsAPI.getById(Number(id));
+      setProduct(response);
+      setError(null);
+    } catch (err) {
+      console.error('Failed to fetch product:', err);
+      setError('Product not found');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAddToCart = async () => {
+    if (!isAuthenticated) {
+      navigate('/login', { state: { returnTo: `/product/${id}` } });
+      return;
+    }
+
+    if (!product) return;
+
+    try {
+      setAddingToCart(true);
+      await cartAPI.addItem(product.id, quantity, selectedSize);
+      
+      // Show success message (you can add a toast notification here)
+      alert('Item added to cart successfully!');
+    } catch (err) {
+      console.error('Failed to add to cart:', err);
+      alert('Failed to add item to cart. Please try again.');
+    } finally {
+      setAddingToCart(false);
+    }
+  };
+
+  const handleBuyNow = async () => {
+    await handleAddToCart();
+    navigate('/cart');
+  };
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Header />
+        <div className="py-8">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="bg-white rounded-lg shadow-lg p-8 text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
+              <p className="mt-4 text-gray-600">Loading product...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error || !product) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Header />
+        <div className="py-8">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="bg-white rounded-lg shadow-lg p-8 text-center">
+              <h2 className="text-2xl font-semibold text-gray-900 mb-2">Product Not Found</h2>
+              <p className="text-gray-600 mb-8">The product you're looking for doesn't exist.</p>
+              <button
+                onClick={() => navigate('/products')}
+                className="bg-indigo-600 text-white px-6 py-2 rounded-md hover:bg-indigo-700 transition-colors"
+              >
+                Browse Products
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Default data for demo (in case some fields are missing)
+  const productData = {
+    ...product,
+    images: product.imageUrl ? [product.imageUrl] : ["/images/product-placeholder.svg"],
+    rating: product.rating || 4.5,
+    reviews: product.reviewCount || 234,
+    sizes: ['S', 'M', 'L', 'XL'], // You may want to add this to your product model
+    inStock: product.stockQuantity > 0,
     features: [
-      "Active Noise Cancellation",
-      "30-hour battery life",
-      "Premium leather ear cushions",
-      "Foldable design",
-      "Bluetooth 5.0"
-    ]
-  };
-
-  const handleAddToCart = () => {
-    console.log('Adding to cart:', { productId: product.id, quantity, size: selectedSize });
-    // TODO: Implement add to cart functionality
-  };
-
-  const handleBuyNow = () => {
-    handleAddToCart();
-    navigate('/checkout');
+      "High quality construction",
+      "Premium materials",
+      "Excellent performance",
+      "Great value for money"
+    ] // You may want to add this to your product model
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gray-50">
+      <Header />
+      <div className="py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="bg-white rounded-lg shadow-lg overflow-hidden">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 p-8">
             {/* Product Images */}
             <div className="space-y-4">
               <div className="aspect-square rounded-lg overflow-hidden">
                 <img
-                  src={product.images[selectedImage]}
-                  alt={product.name}
+                  src={productData.images[selectedImage]}
+                  alt={productData.name}
                   className="w-full h-full object-cover"
+                  onError={(e) => {
+                    const img = e.target as HTMLImageElement;
+                    if (!img.src.includes('/images/product-placeholder.svg')) {
+                      img.src = '/images/product-placeholder.svg';
+                    }
+                  }}
                 />
               </div>
               <div className="grid grid-cols-4 gap-2">
-                {product.images.map((image, index) => (
+                {productData.images.map((image: string, index: number) => (
                   <button
                     key={index}
                     onClick={() => setSelectedImage(index)}
@@ -66,7 +150,14 @@ const ProductDetailPage: React.FC = () => {
                       selectedImage === index ? 'border-indigo-600' : 'border-gray-200'
                     }`}
                   >
-                    <img src={image} alt={`${product.name} ${index + 1}`} className="w-full h-full object-cover" />
+                    <img src={image} alt={`${productData.name} ${index + 1}`} className="w-full h-full object-cover" 
+                      onError={(e) => {
+                        const img = e.target as HTMLImageElement;
+                        if (!img.src.includes('/images/product-placeholder.svg')) {
+                          img.src = '/images/product-placeholder.svg';
+                        }
+                      }}
+                    />
                   </button>
                 ))}
               </div>
@@ -75,32 +166,32 @@ const ProductDetailPage: React.FC = () => {
             {/* Product Info */}
             <div className="space-y-6">
               <div>
-                <h1 className="text-3xl font-bold text-gray-900">{product.name}</h1>
+                <h1 className="text-3xl font-bold text-gray-900">{productData.name}</h1>
                 <div className="flex items-center mt-2">
                   <div className="flex text-yellow-400">
                     {[...Array(5)].map((_, i) => (
                       <svg
                         key={i}
-                        className={`w-5 h-5 ${i < Math.floor(product.rating) ? 'fill-current' : 'stroke-current'}`}
+                        className={`w-5 h-5 ${i < Math.floor(productData.rating) ? 'fill-current' : 'stroke-current'}`}
                         viewBox="0 0 20 20"
                       >
                         <path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z" />
                       </svg>
                     ))}
                   </div>
-                  <span className="ml-2 text-gray-600">({product.reviews} reviews)</span>
+                  <span className="ml-2 text-gray-600">({productData.reviews} reviews)</span>
                 </div>
               </div>
 
-              <div className="text-3xl font-bold text-indigo-600">${product.price}</div>
+              <div className="text-3xl font-bold text-indigo-600">${productData.price}</div>
 
-              <p className="text-gray-600">{product.description}</p>
+              <p className="text-gray-600">{productData.description}</p>
 
               {/* Size Selection */}
               <div>
                 <h3 className="text-sm font-medium text-gray-900 mb-2">Size</h3>
                 <div className="flex gap-2">
-                  {product.sizes.map(size => (
+                  {productData.sizes.map((size: string) => (
                     <button
                       key={size}
                       onClick={() => setSelectedSize(size)}
@@ -140,24 +231,26 @@ const ProductDetailPage: React.FC = () => {
               <div className="flex gap-4">
                 <button
                   onClick={handleAddToCart}
-                  className="flex-1 bg-white border-2 border-indigo-600 text-indigo-600 py-3 px-6 rounded-md font-medium hover:bg-indigo-50 transition-colors"
+                  disabled={addingToCart || !productData.inStock}
+                  className="flex-1 bg-white border-2 border-indigo-600 text-indigo-600 py-3 px-6 rounded-md font-medium hover:bg-indigo-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Add to Cart
+                  {addingToCart ? 'Adding...' : 'Add to Cart'}
                 </button>
                 <button
                   onClick={handleBuyNow}
-                  className="flex-1 bg-indigo-600 text-white py-3 px-6 rounded-md font-medium hover:bg-indigo-700 transition-colors"
+                  disabled={addingToCart || !productData.inStock}
+                  className="flex-1 bg-indigo-600 text-white py-3 px-6 rounded-md font-medium hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Buy Now
+                  {addingToCart ? 'Processing...' : 'Buy Now'}
                 </button>
               </div>
 
               {/* Stock Status */}
               <div className="flex items-center gap-2">
-                {product.inStock ? (
+                {productData.inStock ? (
                   <>
                     <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                    <span className="text-green-600">In Stock</span>
+                    <span className="text-green-600">In Stock ({productData.stockQuantity} available)</span>
                   </>
                 ) : (
                   <>
@@ -171,7 +264,7 @@ const ProductDetailPage: React.FC = () => {
               <div className="border-t pt-6">
                 <h3 className="font-medium text-gray-900 mb-3">Key Features</h3>
                 <ul className="space-y-2">
-                  {product.features.map((feature, index) => (
+                  {productData.features.map((feature: string, index: number) => (
                     <li key={index} className="flex items-center gap-2">
                       <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -183,6 +276,7 @@ const ProductDetailPage: React.FC = () => {
               </div>
             </div>
           </div>
+        </div>
         </div>
       </div>
     </div>

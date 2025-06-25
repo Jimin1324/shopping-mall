@@ -2,6 +2,8 @@ package com.shoppingmall.service;
 
 import com.shoppingmall.mapper.ProductMapper;
 import com.shoppingmall.model.Product;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -14,7 +16,12 @@ import java.util.Optional;
 @Transactional
 public class ProductService {
 
+    private static final Logger logger = LoggerFactory.getLogger(ProductService.class);
+    
     private final ProductMapper productMapper;
+    
+    @Autowired(required = false)
+    private ProductElasticsearchService elasticsearchService;
 
     @Autowired
     public ProductService(ProductMapper productMapper) {
@@ -66,6 +73,7 @@ public class ProductService {
 
     /**
      * Search products by name or description
+     * Uses Elasticsearch if available, falls back to MySQL
      */
     @Transactional(readOnly = true)
     public List<Product> searchProducts(String query, Integer limit) {
@@ -77,6 +85,20 @@ public class ProductService {
             limit = 50; // Default limit
         }
         
+        // Try to use Elasticsearch if available
+        if (elasticsearchService != null && elasticsearchService.isAvailable()) {
+            try {
+                List<Product> elasticResults = elasticsearchService.searchProducts(query.trim(), limit);
+                if (!elasticResults.isEmpty()) {
+                    return elasticResults;
+                }
+            } catch (Exception e) {
+                // Log error and fall back to MySQL
+                System.err.println("Elasticsearch search failed, falling back to MySQL: " + e.getMessage());
+            }
+        }
+        
+        // Fallback to MySQL search
         return productMapper.searchByName(query.trim(), limit);
     }
 
@@ -122,6 +144,67 @@ public class ProductService {
 
         int result = productMapper.decreaseStock(productId, quantity);
         return result > 0;
+    }
+
+    /**
+     * Create a new product (for sellers/admin)
+     * Automatically indexes to Elasticsearch
+     */
+    public Product createProduct(Product product) {
+        // Save to MySQL first
+        productMapper.insert(product);
+        
+        // Index to Elasticsearch if available
+        if (elasticsearchService != null && elasticsearchService.isAvailable()) {
+            try {
+                elasticsearchService.indexProduct(product);
+            } catch (Exception e) {
+                logger.warn("Failed to index new product {} to Elasticsearch: {}", product.getId(), e.getMessage());
+            }
+        }
+        
+        return product;
+    }
+    
+    /**
+     * Update an existing product (for sellers/admin)
+     * Automatically updates in Elasticsearch
+     */
+    public Product updateProduct(Product product) {
+        // Update in MySQL first
+        productMapper.update(product);
+        
+        // Update in Elasticsearch if available
+        if (elasticsearchService != null && elasticsearchService.isAvailable()) {
+            try {
+                elasticsearchService.indexProduct(product);
+            } catch (Exception e) {
+                logger.warn("Failed to update product {} in Elasticsearch: {}", product.getId(), e.getMessage());
+            }
+        }
+        
+        return product;
+    }
+    
+    /**
+     * Delete a product (for sellers/admin)
+     * Automatically removes from Elasticsearch
+     */
+    public boolean deleteProduct(Long productId) {
+        // Delete from MySQL first
+        int result = productMapper.deleteById(productId);
+        boolean deleted = result > 0;
+        
+        // Remove from Elasticsearch if available
+        if (deleted && elasticsearchService != null && elasticsearchService.isAvailable()) {
+            try {
+                elasticsearchService.deleteProduct(productId);
+            } catch (Exception e) {
+                logger.warn("Failed to delete product {} from Elasticsearch: {}", productId, e.getMessage());
+            }
+        }
+        
+        return deleted;
     }
 
     /**
@@ -218,11 +301,4 @@ public class ProductService {
         return result > 0;
     }
 
-    /**
-     * Delete product permanently (admin function)
-     */
-    public boolean deleteProduct(Long productId) {
-        int result = productMapper.deleteById(productId);
-        return result > 0;
-    }
 }

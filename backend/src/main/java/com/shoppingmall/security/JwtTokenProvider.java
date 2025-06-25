@@ -90,4 +90,42 @@ public class JwtTokenProvider {
         Date expiration = getExpirationDateFromToken(token);
         return expiration.before(new Date());
     }
+
+    /**
+     * Generate password reset token
+     */
+    public String generatePasswordResetToken(Long userId) {
+        Date expiryDate = new Date(System.currentTimeMillis() + (24 * 60 * 60 * 1000)); // 24 hours
+
+        return Jwts.builder()
+                .setSubject(userId.toString())
+                .setIssuedAt(new Date())
+                .setExpiration(expiryDate)
+                .claim("type", "password_reset")
+                .signWith(getSigningKey(), SignatureAlgorithm.HS256)
+                .compact();
+    }
+
+    /**
+     * Validate password reset token and return user ID
+     */
+    public Long validatePasswordResetToken(String token) {
+        try {
+            Claims claims = Jwts.parserBuilder()
+                    .setSigningKey(getSigningKey())
+                    .build()
+                    .parseClaimsJws(token)
+                    .getBody();
+
+            // Check if it's a password reset token
+            String type = claims.get("type", String.class);
+            if (!"password_reset".equals(type)) {
+                return null;
+            }
+
+            return Long.parseLong(claims.getSubject());
+        } catch (Exception e) {
+            return null;
+        }
+    }
 }

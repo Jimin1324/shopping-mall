@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300" viewBox="0 0 300 300">
+  <rect width="300" height="300" fill="#f3f4f6"/>
+  <g fill="#9ca3af">
+    <path d="M150 100c-27.6 0-50 22.4-50 50s22.4 50 50 50 50-22.4 50-50-22.4-50-50-50zm0 90c-22.1 0-40-17.9-40-40s17.9-40 40-40 40 17.9 40 40-17.9 40-40 40z"/>
+    <circle cx="150" cy="150" r="15"/>
+    <path d="M205 125h-15c-2.8 0-5-2.2-5-5s2.2-5 5-5h15c2.8 0 5 2.2 5 5s-2.2 5-5 5z"/>
+  </g>
+  <text x="150" y="230" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#6b7280">Product Image</text>
+</svg>
